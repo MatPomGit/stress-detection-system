@@ -1,18 +1,24 @@
-# Contributing to Stress Detection System
+# Wkład w System Wykrywania Stresu / Contributing to Stress Detection System
+
+Dziękujemy za zainteresowanie wkładem w projekt Systemu Wykrywania Stresu w Czasie Rzeczywistym! Witamy wkład od społeczności i jesteśmy wdzięczni za Wasze wsparcie.
 
 Thank you for your interest in contributing to the Real-Time Stress Detection System! We welcome contributions from the community and are grateful for your support.
 
-## Table of Contents
+**Dla początkujących / For Beginners:**
+Jeśli to Twój pierwszy raz z projektem open-source, nie martw się! Ten dokument poprowadzi Cię krok po kroku.
+If this is your first time with an open-source project, don't worry! This document will guide you step by step.
 
-1. [Code of Conduct](#code-of-conduct)
-2. [Getting Started](#getting-started)
-3. [Development Workflow](#development-workflow)
-4. [Coding Standards](#coding-standards)
-5. [Testing Guidelines](#testing-guidelines)
-6. [Privacy & Security Guidelines](#privacy--security-guidelines)
-7. [Pull Request Process](#pull-request-process)
-8. [Issue Guidelines](#issue-guidelines)
-9. [Community](#community)
+## Spis treści / Table of Contents
+
+1. [Kodeks postępowania / Code of Conduct](#code-of-conduct)
+2. [Pierwsze kroki / Getting Started](#getting-started)
+3. [Przepływ pracy deweloperskiej / Development Workflow](#development-workflow)
+4. [Standardy kodowania / Coding Standards](#coding-standards)
+5. [Wytyczne testowania / Testing Guidelines](#testing-guidelines)
+6. [Wytyczne prywatności i bezpieczeństwa / Privacy & Security Guidelines](#privacy--security-guidelines)
+7. [Proces Pull Request / Pull Request Process](#pull-request-process)
+8. [Wytyczne dla zgłoszeń / Issue Guidelines](#issue-guidelines)
+9. [Społeczność / Community](#community)
 
 ---
 
