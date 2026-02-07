@@ -332,113 +332,375 @@ async def update_settings(new_settings: Settings):
 
 @app.post("/api/baseline/start")
 async def start_baseline_calibration():
-    """Start baseline calibration process"""
+    """
+    Rozpocznij proces kalibracji linii bazowej.
+    Start baseline calibration process.
+    
+    ===== CO TO JEST LINIA BAZOWA? / WHAT IS A BASELINE? =====
+    
+    Linia bazowa to "Twoja norma" - jak zachowujesz się normalnie,
+    bez stresu. System musi się tego nauczyć przez kilka dni.
+    
+    Baseline is "your norm" - how you behave normally,
+    without stress. System needs to learn this over several days.
+    
+    ===== JAK DZIAŁA KALIBRACJA? / HOW DOES CALIBRATION WORK? =====
+    
+    1. System zbiera dane przez 5 dni (System collects data for 5 days)
+    2. Analizuje Twoje typowe wzorce (Analyzes your typical patterns)
+    3. Tworzy model "normalnego stanu" (Creates "normal state" model)
+    4. Potem porównuje obecne zachowanie z bazową linią
+       (Then compares current behavior with baseline)
+    
+    ===== JAK UŻYWAĆ? / HOW TO USE? =====
+    
+    Wyślij zapytanie POST do: http://127.0.0.1:8765/api/baseline/start
+    Send POST request to: http://127.0.0.1:8765/api/baseline/start
+    
+    WAŻNE / IMPORTANT:
+    Podczas kalibracji pracuj normalnie! Nie symuluj stresu.
+    During calibration, work normally! Don't simulate stress.
+    """
+    logger.info("Rozpoczynanie kalibracji linii bazowej...")
     logger.info("Starting baseline calibration...")
     return {
-        "status": "started",
-        "estimated_days": 5,
-        "message": "Baseline calibration started. Use the app normally for 5 days."
+        "status": "started",  # Status: rozpoczęto (started)
+        "estimated_days": 5,  # Szacowany czas: 5 dni (Estimated time: 5 days)
+        "message": "Kalibracja linii bazowej rozpoczęta. Używaj aplikacji normalnie przez 5 dni." 
+                   " / Baseline calibration started. Use the app normally for 5 days."
     }
 
 
 @app.get("/api/baseline/status")
 async def get_baseline_status():
-    """Get baseline calibration status"""
+    """
+    Pobierz status kalibracji linii bazowej.
+    Get baseline calibration status.
+    
+    ===== JAK UŻYWAĆ? / HOW TO USE? =====
+    
+    Wyślij zapytanie GET do: http://127.0.0.1:8765/api/baseline/status
+    Send GET request to: http://127.0.0.1:8765/api/baseline/status
+    
+    ===== CO ZWRACA? / WHAT DOES IT RETURN? =====
+    
+    Zwraca informacje o postępie kalibracji:
+    Returns information about calibration progress:
+    - status: "not_started" / "in_progress" / "completed"
+    - progress: 0-100 (procent ukończenia / completion percentage)
+    - days_completed: ile dni minęło (how many days passed)
+    - days_remaining: ile dni pozostało (how many days remaining)
+    """
     return {
-        "status": "in_progress",
-        "progress": 40,  # 0-100
-        "days_completed": 2,
-        "days_remaining": 3
+        "status": "in_progress",  # Status: w trakcie (in progress)
+        "progress": 40,  # Postęp: 40% (Progress: 40%)
+        "days_completed": 2,  # Ukończono: 2 dni (Completed: 2 days)
+        "days_remaining": 3  # Pozostało: 3 dni (Remaining: 3 days)
     }
 
 
-# WebSocket for real-time updates
+# ===== WEBSOCKET DLA AKTUALIZACJI W CZASIE RZECZYWISTYM =====
+# ===== WEBSOCKET FOR REAL-TIME UPDATES =====
+#
+# WYJAŚNIENIE DLA POCZĄTKUJĄCYCH / EXPLANATION FOR BEGINNERS:
+#
+# WebSocket to technologia pozwalająca na dwukierunkową komunikację
+# w czasie rzeczywistym między serwerem a klientem.
+#
+# WebSocket is a technology allowing bidirectional real-time
+# communication between server and client.
+#
+# Różnica vs HTTP:
+# Difference vs HTTP:
+# - HTTP: Klient pyta -> Serwer odpowiada (request-response)
+# - WebSocket: Otwarty kanał, serwer może sam wysyłać dane
+#              (Open channel, server can send data on its own)
+#
+# Użycie w naszej aplikacji:
+# Use in our application:
+# - Serwer wysyła aktualizacje poziomu stresu co 30 sekund
+#   (Server sends stress level updates every 30 seconds)
+# - Frontend otrzymuje je natychmiast bez ciągłego odpytywania
+#   (Frontend receives them immediately without constant polling)
+
 class ConnectionManager:
+    """
+    Menedżer połączeń WebSocket.
+    WebSocket connection manager.
+    
+    ===== CO ROBI TA KLASA? / WHAT DOES THIS CLASS DO? =====
+    
+    Zarządza wszystkimi aktywnymi połączeniami WebSocket.
+    Manages all active WebSocket connections.
+    
+    Funkcje / Functions:
+    - connect(): Dodaj nowe połączenie (Add new connection)
+    - disconnect(): Usuń połączenie (Remove connection)
+    - broadcast(): Wyślij wiadomość do wszystkich (Send message to all)
+    """
     def __init__(self):
-        self.active_connections: list[WebSocket] = []
+        """
+        Konstruktor - inicjalizuje pustą listę połączeń.
+        Constructor - initializes empty connection list.
+        """
+        self.active_connections: list[WebSocket] = []  # Lista aktywnych połączeń / List of active connections
 
     async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
+        """
+        Połącz nowego klienta.
+        Connect new client.
+        
+        Args:
+            websocket: Obiekt połączenia WebSocket / WebSocket connection object
+        """
+        await websocket.accept()  # Zaakceptuj połączenie / Accept connection
+        self.active_connections.append(websocket)  # Dodaj do listy / Add to list
+        logger.info(f"Klient WebSocket połączony. Łącznie: {len(self.active_connections)}")
         logger.info(f"WebSocket client connected. Total: {len(self.active_connections)}")
 
     def disconnect(self, websocket: WebSocket):
-        self.active_connections.remove(websocket)
+        """
+        Rozłącz klienta.
+        Disconnect client.
+        
+        Args:
+            websocket: Obiekt połączenia WebSocket / WebSocket connection object
+        """
+        self.active_connections.remove(websocket)  # Usuń z listy / Remove from list
+        logger.info(f"Klient WebSocket rozłączony. Łącznie: {len(self.active_connections)}")
         logger.info(f"WebSocket client disconnected. Total: {len(self.active_connections)}")
 
     async def broadcast(self, message: dict):
-        for connection in self.active_connections:
+        """
+        Wyślij wiadomość do wszystkich połączonych klientów.
+        Send message to all connected clients.
+        
+        Args:
+            message: Wiadomość w formacie słownika / Message in dictionary format
+        """
+        for connection in self.active_connections:  # Dla każdego połączenia / For each connection
             try:
-                await connection.send_json(message)
+                await connection.send_json(message)  # Wyślij JSON / Send JSON
             except Exception as e:
+                logger.error(f"Błąd wysyłania do klienta: {e}")
                 logger.error(f"Error broadcasting to client: {e}")
 
 
+# Stwórz globalną instancję menedżera / Create global manager instance
 manager = ConnectionManager()
 
 
 @app.websocket("/ws/stress")
 async def websocket_endpoint(websocket: WebSocket):
-    """WebSocket endpoint for real-time stress updates"""
-    await manager.connect(websocket)
+    """
+    Endpoint WebSocket dla aktualizacji stresu w czasie rzeczywistym.
+    WebSocket endpoint for real-time stress updates.
+    
+    ===== JAK UŻYWAĆ? / HOW TO USE? =====
+    
+    Z JavaScriptu (frontend):
+    From JavaScript (frontend):
+    
+    ```javascript
+    const ws = new WebSocket('ws://127.0.0.1:8765/ws/stress');
+    
+    ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('Nowy poziom stresu:', data);
+        // Zaktualizuj UI / Update UI
+    };
+    ```
+    
+    ===== CO DZIEJE SIĘ KROK PO KROKU? / WHAT HAPPENS STEP BY STEP? =====
+    
+    1. Klient łączy się z /ws/stress (Client connects to /ws/stress)
+    2. Serwer akceptuje połączenie (Server accepts connection)
+    3. Co 30 sekund serwer wysyła aktualizację (Every 30 seconds server sends update)
+    4. Klient otrzymuje dane i aktualizuje UI (Client receives data and updates UI)
+    5. W przypadku błędu lub rozłączenia - cleanup (On error or disconnect - cleanup)
+    """
+    await manager.connect(websocket)  # Połącz klienta / Connect client
     try:
-        while True:
+        while True:  # Nieskończona pętla / Infinite loop
+            # Wyślij aktualizację stresu co 30 sekund
             # Send stress update every 30 seconds
             import asyncio
-            await asyncio.sleep(30)
+            await asyncio.sleep(30)  # Czekaj 30 sekund / Wait 30 seconds
 
+            # Przygotuj dane (obecnie testowe)
+            # Prepare data (currently test data)
             stress_data = {
-                "event": "stress_update",
+                "event": "stress_update",  # Typ zdarzenia / Event type
                 "data": {
-                    "score": 72,
-                    "level": "HIGH",
-                    "confidence": 0.85,
-                    "timestamp": datetime.now().isoformat(),
+                    "score": 72,  # Wynik / Score
+                    "level": "HIGH",  # Poziom / Level
+                    "confidence": 0.85,  # Pewność / Confidence
+                    "timestamp": datetime.now().isoformat(),  # Czas / Time
                     "modules": {
-                        "behavioral": 75,
-                        "facial": 68,
-                        "voice": 71
+                        "behavioral": 75,  # Behawioralny / Behavioral
+                        "facial": 68,  # Twarz / Facial
+                        "voice": 71  # Głos / Voice
                     }
                 }
             }
-            await websocket.send_json(stress_data)
+            await websocket.send_json(stress_data)  # Wyślij JSON / Send JSON
+            
     except WebSocketDisconnect:
+        # Klient się rozłączył normalnie / Client disconnected normally
         manager.disconnect(websocket)
     except Exception as e:
+        # Wystąpił błąd / An error occurred
+        logger.error(f"Błąd WebSocket: {e}")
         logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
 
 
+# ===== ZDARZENIA CYKLU ŻYCIA APLIKACJI / APPLICATION LIFECYCLE EVENTS =====
+#
+# WYJAŚNIENIE DLA POCZĄTKUJĄCYCH / EXPLANATION FOR BEGINNERS:
+#
+# FastAPI pozwala zdefiniować funkcje, które wykonają się:
+# FastAPI allows defining functions that execute:
+# - Przy starcie aplikacji (@app.on_event("startup"))
+# - Przy zamykaniu aplikacji (@app.on_event("shutdown"))
+#
+# Użyteczne do:
+# Useful for:
+# - Inicjalizacji zasobów (połączenia DB, modele ML)
+#   (Resource initialization - DB connections, ML models)
+# - Czyszczenia zasobów przy zamykaniu
+#   (Resource cleanup on shutdown)
+
 @app.on_event("startup")
 async def startup_event():
-    """Run on app startup"""
+    """
+    Funkcja wykonywana przy starcie aplikacji.
+    Function executed on app startup.
+    
+    ===== CO SIĘ TUTAJ DZIEJE? / WHAT HAPPENS HERE? =====
+    
+    Ta funkcja wykonuje się RAZ, gdy serwer się uruchamia.
+    This function executes ONCE when the server starts.
+    
+    Obecnie tylko wyświetla powitanie, ale w przyszłości będzie:
+    Currently only displays welcome, but in future will:
+    - Ładować modele ML (Load ML models)
+    - Łączyć się z bazą danych (Connect to database)
+    - Inicjalizować moduły monitorujące (Initialize monitoring modules)
+    """
     logger.info("=" * 60)
+    logger.info("Backend Wykrywania Stresu w Czasie Rzeczywistym v0.1.0")
     logger.info("Real-Time Stress Detection Backend v0.1.0")
+    logger.info("Prywatność | Wielomodalny | Przetwarzanie Lokalne")
     logger.info("Privacy-First | Multi-Modal | Local Processing")
+    logger.info("=" * 60)
+    logger.info("Dokumentacja API: http://127.0.0.1:8765/api/docs")
     logger.info("API Docs: http://127.0.0.1:8765/api/docs")
     logger.info("=" * 60)
+    
+    # TODO: W przyszłości dodaj tutaj / In future add here:
+    # - Ładowanie modeli ML / Loading ML models
+    # - Inicjalizacja połączenia z bazą danych / Database connection initialization
+    # - Weryfikacja wymaganych plików i katalogów / Verification of required files and directories
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Run on app shutdown"""
+    """
+    Funkcja wykonywana przy zamykaniu aplikacji.
+    Function executed on app shutdown.
+    
+    ===== CO SIĘ TUTAJ DZIEJE? / WHAT HAPPENS HERE? =====
+    
+    Ta funkcja wykonuje się RAZ, gdy serwer się wyłącza.
+    This function executes ONCE when the server shuts down.
+    
+    Obecnie tylko loguje wiadomość, ale w przyszłości będzie:
+    Currently only logs message, but in future will:
+    - Zamykać połączenia WebSocket (Close WebSocket connections)
+    - Zapisywać stan aplikacji (Save application state)
+    - Zwalniać zasoby (Free resources)
+    """
+    logger.info("Zamykanie backendu wykrywania stresu...")
     logger.info("Shutting down Stress Detection Backend...")
+    
+    # TODO: W przyszłości dodaj tutaj / In future add here:
+    # - Bezpieczne zamknięcie wszystkich połączeń / Safe closure of all connections
+    # - Zapis stanu do bazy danych / Save state to database
+    # - Zwolnienie pamięci modeli ML / Free ML models memory
 
 
 def main():
-    """Main entry point"""
-    # Create logs directory
-    Path("logs").mkdir(exist_ok=True)
+    """
+    Główny punkt wejścia dla uruchomienia serwera.
+    Main entry point for running the server.
+    
+    ===== CO ROBI TA FUNKCJA? / WHAT DOES THIS FUNCTION DO? =====
+    
+    1. Tworzy katalog 'logs' jeśli nie istnieje
+       (Creates 'logs' directory if it doesn't exist)
+    2. Uruchamia serwer uvicorn z aplikacją FastAPI
+       (Starts uvicorn server with FastAPI application)
+    
+    ===== JAK URUCHOMIĆ SERWER? / HOW TO START THE SERVER? =====
+    
+    Z terminala / From terminal:
+    ```bash
+    python src/main.py
+    ```
+    
+    Lub bezpośrednio z uvicorn / Or directly with uvicorn:
+    ```bash
+    uvicorn src.main:app --host 127.0.0.1 --port 8765 --reload
+    ```
+    
+    ===== PARAMETRY UVICORN / UVICORN PARAMETERS =====
+    
+    - "src.main:app": Ścieżka do obiektu aplikacji (Path to app object)
+      - src.main: moduł (module)
+      - app: zmienna (variable)
+    
+    - host="127.0.0.1": Nasłuchuj tylko lokalnie (Listen only locally)
+      127.0.0.1 = localhost = Twój komputer (your computer)
+      Bezpieczeństwo: Serwer NIE jest dostępny z zewnątrz
+      Security: Server is NOT accessible from outside
+    
+    - port=8765: Numer portu (Port number)
+      Aplikacja będzie dostępna pod: http://127.0.0.1:8765
+      Application will be available at: http://127.0.0.1:8765
+    
+    - reload=True: Auto-restart przy zmianach kodu (Auto-restart on code changes)
+      UWAGA: Używaj tylko w development! (NOTE: Use only in development!)
+      W produkcji ustaw reload=False (In production set reload=False)
+    
+    - log_level="info": Poziom logowania (Logging level)
+      Opcje / Options: "debug", "info", "warning", "error", "critical"
+    """
+    # KROK 1: Stwórz katalog logs / STEP 1: Create logs directory
+    Path("logs").mkdir(exist_ok=True)  
+    # exist_ok=True: Nie zgłaszaj błędu jeśli katalog już istnieje
+    # exist_ok=True: Don't raise error if directory already exists
 
-    # Run server
+    # KROK 2: Uruchom serwer / STEP 2: Run server
     uvicorn.run(
-        "src.main:app",
-        host="127.0.0.1",
-        port=8765,
-        reload=True,
-        log_level="info"
+        "src.main:app",  # Aplikacja do uruchomienia / Application to run
+        host="127.0.0.1",  # Host (tylko lokalny / only local)
+        port=8765,  # Port
+        reload=True,  # Auto-reload (development mode)
+        log_level="info"  # Poziom logowania / Logging level
     )
 
 
 if __name__ == "__main__":
-    main()
+    # ===== CO TO ZNACZY? / WHAT DOES THIS MEAN? =====
+    # 
+    # To sprawdza, czy plik jest uruchamiany bezpośrednio.
+    # This checks if the file is run directly.
+    # 
+    # Jeśli tak: uruchom main() i wystartuj serwer
+    # If yes: run main() and start server
+    # 
+    # Jeśli plik jest importowany: nie uruchamiaj serwera
+    # If file is imported: don't start server
+    
+    main()  # Uruchom serwer / Start server
