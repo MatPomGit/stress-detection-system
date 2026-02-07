@@ -45,7 +45,7 @@ The **Stress Detection System** combines behavioral analysis, facial recognition
   - Natychmiastowa informacja zwrotna
   - Stress insights within 5 seconds
 
-- **🎨 Nieintru zywny (Non-Intrusive)**: 
+- **🎨 Nieintruzywny (Non-Intrusive)**: 
   - Brak ankiet do wypełniania
   - Brak przerw w Twojej pracy
   - No surveys, no workflow interruption
@@ -180,7 +180,7 @@ Workplace burnout is a serious problem in today's work environment:
 5. **Obliczenie wyniku:** System generuje pojedynczą liczbę (0-100) reprezentującą poziom stresu
    (Score calculation: System generates a single number representing stress level)
 
-6. **Wyświetlenie rezultatu:** Widzisz wynik na delikatnym, nieintru zywnym dashboardzie
+6. **Wyświetlenie rezultatu:** Widzisz wynik na delikatnym, nieintruzywnym dashboardzie
    (Display result: You see the result on a gentle, non-intrusive dashboard)
 
 ---
